@@ -1,0 +1,1734 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>IDEAX 2026 — Projector Display</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=JetBrains+Mono:wght@500;700;800&family=Sora:wght@400;600;700&family=Space+Grotesk:wght@500;700&family=Unbounded:wght@700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+:root {
+  --bg: #02081e;
+  --ink: #f0f8ff;
+  --acc: #5ee1ff;
+  --acc-glow: rgba(94, 225, 255, 0.6);
+  --sig: #5ee1ff;
+  --dim: #8ba5d6;
+  --dark-glass: rgba(3, 11, 40, 0.88);
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+*, *::before, *::after {
+  box-sizing: inherit;
+}
+
+html {
+  height: 100%;
+  scroll-padding-top: env(safe-area-inset-top, 0px);
+}
+
+body {
+  margin: 0;
+  height: 100%;
+  background: #02081e;
+  color: var(--ink);
+  overflow: hidden;
+  font-family: 'Space Grotesk', 'Sora', system-ui, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  overscroll-behavior: none;
+}
+
+#vp {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  cursor: none;
+}
+#vp.show-cursor {
+  cursor: default;
+}
+
+#stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1920px;
+  height: 1080px;
+  margin: -540px 0 0 -960px;
+  background: #02081e url('./bg.jpg') center center / cover no-repeat;
+  overflow: hidden;
+  pointer-events: none;
+}
+#stage * {
+  pointer-events: none;
+}
+#stage .pe, #stage .pe * {
+  pointer-events: auto;
+}
+
+.abs { position: absolute; }
+.sc { opacity: 0; }
+.big {
+  font-family: 'Big Shoulders Display', 'Unbounded', Impact, sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+.tag {
+  font-size: 26px;
+  letter-spacing: 0.35em;
+  color: var(--sig);
+  font-weight: 800;
+  text-shadow: 0 0 20px var(--acc-glow);
+}
+.dim {
+  color: var(--dim);
+  font-size: 24px;
+  letter-spacing: 0.2em;
+  margin-top: 10px;
+}
+.tagl {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 38px;
+  letter-spacing: 0.35em;
+  margin-top: 34px;
+  color: #c4dcfc;
+  text-shadow: 0 0 15px rgba(94, 225, 255, 0.3);
+}
+.dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--acc);
+  box-shadow: 0 0 12px var(--acc);
+  margin-right: 14px;
+  animation: bl 1s steps(1) infinite;
+}
+@keyframes bl {
+  50% { opacity: 0.25; }
+}
+
+/* Atmospheric Vignette Veil: provides rich contrast without losing background artwork */
+#vig {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, rgba(2, 6, 30, 0.05) 0%, rgba(2, 8, 36, 0.35) 65%, rgba(1, 4, 20, 0.75) 100%);
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Transparent particle layer for floating stardust */
+#bg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ======================================================== */
+/* COUNTDOWN DISPLAY (High-Contrast Frosted Glass Card)     */
+/* Eliminates character overlapping and ensures visibility  */
+/* ======================================================== */
+#cd {
+  position: absolute;
+  left: 960px;
+  top: 540px;
+  width: 1700px;
+  margin: -260px 0 0 -850px;
+  text-align: center;
+  opacity: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.dg-card {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(3, 10, 36, 0.85);
+  border: 1.5px solid rgba(94, 225, 255, 0.45);
+  border-radius: 40px;
+  padding: 24px 64px 30px;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.88), 0 0 50px rgba(94, 225, 255, 0.22), inset 0 0 35px rgba(94, 225, 255, 0.08);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  max-width: 95%;
+}
+
+#cdl {
+  font: 800 28px 'JetBrains Mono', monospace;
+  letter-spacing: 0.4em;
+  color: var(--sig);
+  margin-bottom: 8px;
+  text-shadow: 0 0 20px var(--acc-glow);
+  text-transform: uppercase;
+}
+
+.dg {
+  font-family: 'Big Shoulders Display', Impact, sans-serif;
+  font-weight: 900;
+  font-size: 300px;
+  line-height: 0.86;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  text-shadow: 0 0 35px var(--acc-glow), 0 0 75px rgba(47, 91, 255, 0.45), 0 10px 40px rgba(0, 0, 0, 0.9);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.dg.has-h {
+  font-size: 250px;
+}
+
+.dg span {
+  display: inline-block;
+  min-width: 0.58em;
+  text-align: center;
+  flex: 0 0 auto;
+}
+
+.dg .c {
+  display: inline-block;
+  min-width: 0.32em;
+  text-align: center;
+  color: var(--acc);
+  text-shadow: 0 0 25px var(--acc);
+  animation: bl 1s steps(1) infinite;
+  flex: 0 0 auto;
+}
+
+#cd.warn .dg {
+  color: #ffd166;
+  text-shadow: 0 0 50px rgba(255, 209, 102, 0.6), 0 10px 40px rgba(0, 0, 0, 0.9);
+}
+
+#cd.crit .dg {
+  color: #ff4d6d;
+  animation: pl 1s infinite alternate;
+}
+
+@keyframes pl {
+  to {
+    transform: scale(1.03);
+    text-shadow: 0 0 80px rgba(255, 77, 109, 0.85), 0 10px 40px rgba(0, 0, 0, 0.95);
+  }
+}
+
+.bar {
+  width: 100%;
+  max-width: 880px;
+  height: 9px;
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(8px);
+  border-radius: 8px;
+  margin: 22px auto 0;
+  overflow: hidden;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.6);
+}
+
+.bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #1d4ed8, #5ee1ff);
+  box-shadow: 0 0 16px #5ee1ff;
+  transform-origin: 0 50%;
+  border-radius: 8px;
+}
+
+/* ======================================================== */
+/* ROBOT CONTAINER                                          */
+/* ======================================================== */
+#robot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 340px;
+  height: 400px;
+  transform-origin: 50% 100%;
+  opacity: 0;
+  z-index: 5;
+  filter: drop-shadow(0 0 30px rgba(60, 130, 255, 0.65));
+}
+#robot svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+#robot .robot-3d-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 15px 35px rgba(0, 0, 0, 0.6));
+}
+
+#scene {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+}
+
+/* HUD frame and labels */
+.hud {
+  position: absolute;
+  z-index: 8;
+  font: 700 16px 'JetBrains Mono', monospace;
+  letter-spacing: 0.22em;
+  color: var(--dim);
+}
+.br {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  border: 2px solid rgba(94, 225, 255, 0.35);
+  z-index: 8;
+}
+
+/* Transition Banner */
+#sw {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  display: none;
+  overflow: hidden;
+}
+#sw .b {
+  position: absolute;
+  top: -10%;
+  height: 120%;
+  left: -15%;
+  width: 130%;
+}
+#sw .lab {
+  position: absolute;
+  left: 170px;
+  top: 440px;
+  font: 900 140px 'Big Shoulders Display', Impact, sans-serif;
+  color: #02081e;
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+}
+
+#fl {
+  position: absolute;
+  inset: 0;
+  background: #ffffff;
+  opacity: 0;
+  z-index: 10;
+}
+
+/* Interactive Start Button */
+.ring {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  margin: -20px;
+  border: 6px solid var(--acc);
+  border-radius: 50%;
+  z-index: 7;
+}
+.btn {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #7de8ff, #2fb6ff);
+  color: #020d2c;
+  border-radius: 20px;
+  font: 900 70px/110px 'Big Shoulders Display', Impact, sans-serif;
+  text-align: center;
+  letter-spacing: 0.08em;
+  box-shadow: 0 8px 0 #1240a0, 0 0 60px var(--acc-glow);
+}
+
+/* Steam animation */
+.stm {
+  animation: stmMove 1.8s infinite ease-in-out;
+}
+@keyframes stmMove {
+  0% { transform: translateY(0); opacity: 0.8; }
+  50% { transform: translateY(-8px); opacity: 0.4; }
+  100% { transform: translateY(-16px); opacity: 0; }
+}
+
+.cf {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 14px;
+  height: 22px;
+}
+
+#hint {
+  position: fixed;
+  right: calc(14px + env(safe-area-inset-right,0px));
+  bottom: calc(14px + env(safe-area-inset-bottom,0px));
+  z-index: 45;
+  font: 600 12px 'JetBrains Mono', monospace;
+  color: #c4dcfc;
+  background: rgba(3, 11, 40, 0.85);
+  border: 1px solid rgba(94, 225, 255, 0.35);
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: opacity 1s;
+  letter-spacing: 0.1em;
+  backdrop-filter: blur(8px);
+}
+
+/* Control Panel (Drawer) */
+.cp {
+  position: fixed;
+  z-index: 60;
+  background: rgba(3, 11, 40, 0.95);
+  color: var(--ink);
+  font: 500 14px 'JetBrains Mono', monospace;
+  padding: 18px;
+  overflow: auto;
+  cursor: default;
+  user-select: auto;
+  -webkit-user-select: auto;
+  box-sizing: border-box;
+  backdrop-filter: blur(16px);
+  border: 1.5px solid rgba(94, 225, 255, 0.4);
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.7);
+}
+.cp.ov {
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 390px;
+  border-left: 2px solid var(--acc);
+  border-right: 0;
+  border-top: 0;
+  border-bottom: 0;
+  display: none;
+}
+.cp.full {
+  inset: 0;
+  max-width: 640px;
+  margin: 0 auto;
+}
+@media(max-width:700px){
+  .cp.ov { top: auto; width: 100%; height: 60%; border-left: 0; border-top: 2px solid var(--acc); }
+}
+.cp h2 {
+  margin: 0 0 6px;
+  font: 800 24px 'Big Shoulders Display', Impact, sans-serif;
+  letter-spacing: 0.05em;
+  color: var(--acc);
+}
+.cp .g { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
+.cp button {
+  background: #0f2b82;
+  color: var(--ink);
+  border: 1px solid #365bbb;
+  border-radius: 8px;
+  padding: 12px 8px;
+  font: inherit;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.15s ease;
+}
+.cp button:hover {
+  background: #1946d6;
+  border-color: var(--acc);
+}
+.cp button.on {
+  background: var(--acc);
+  color: #02081e;
+  border-color: var(--acc);
+  box-shadow: 0 0 12px rgba(94, 225, 255, 0.4);
+}
+.cp input[type=text], .cp textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: #02091f;
+  color: var(--ink);
+  border: 1px solid #365bbb;
+  border-radius: 8px;
+  padding: 10px;
+  font: inherit;
+  margin: 4px 0;
+}
+.cp .rd {
+  font: 900 58px 'Big Shoulders Display', Impact, sans-serif;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+  text-shadow: 0 0 25px var(--acc-glow);
+}
+.cp .r { display: flex; gap: 8px; margin: 8px 0; }
+.cp .r > * { flex: 1; }
+.cp small { color: var(--dim); }
+.cp .ok { color: var(--sig); }
+
+/* Bottom Quick-Control Bar (Appears on Hover) */
+#ctl-wrap {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 85px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  padding-bottom: 12px;
+  z-index: 55;
+  pointer-events: none;
+}
+
+#ctl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  background: rgba(3, 11, 40, 0.88);
+  border: 1.5px solid rgba(94, 225, 255, 0.4);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(94, 225, 255, 0.08);
+  backdrop-filter: blur(14px);
+  opacity: 0;
+  transform: translateY(16px);
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+#ctl-wrap:hover #ctl,
+#ctl:hover,
+#ctl.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+#ctl button,
+#ctl select {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  height: 36px;
+  padding: 0 14px;
+  color: #ffffff;
+  background: #0f2b82;
+  border: 1px solid #365bbb;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+#ctl button:hover,
+#ctl select:hover {
+  background: #1946d6;
+  border-color: #5ee1ff;
+  box-shadow: 0 0 14px rgba(94, 225, 255, 0.4);
+}
+
+#ctl select {
+  padding-right: 26px;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath fill='%235ee1ff' d='M5 7L0 0h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  min-width: 130px;
+}
+
+#ctl .btn-icon {
+  width: 36px;
+  padding: 0;
+  font-size: 14px;
+}
+
+#ctl .btn-more {
+  border-left: 2px solid rgba(94, 225, 255, 0.35);
+  margin-left: 4px;
+  padding-left: 14px;
+}
+</style>
+</head>
+<body>
+
+<div id="vp">
+  <div id="stage">
+    <canvas id="bg" width="1920" height="1080" class="abs" style="left:0;top:0"></canvas>
+    <div id="robot"></div>
+    <div id="scene"></div>
+
+    <div id="cd">
+      <div class="dg-card">
+        <div id="cdl"></div>
+        <div class="dg" id="cdd"></div>
+        <div class="bar"><i id="cdb"></i></div>
+      </div>
+    </div>
+
+    <div id="vig"></div>
+
+    <div class="hud" style="left:60px;top:34px"><span class="dot"></span>IDEAX 2026 · PROJECTOR · LIVE</div>
+    <div class="hud" style="right:60px;bottom:32px;opacity:.65">BUILD • CREATE • COMPETE</div>
+    <i class="br" style="left:24px;top:24px;border-right:0;border-bottom:0"></i>
+    <i class="br" style="right:24px;top:24px;border-left:0;border-bottom:0"></i>
+    <i class="br" style="left:24px;bottom:24px;border-right:0;border-top:0"></i>
+    <i class="br" style="right:24px;bottom:24px;border-left:0;border-top:0"></i>
+
+    <div id="sw">
+      <div class="b b1" style="background:#5ee1ff"></div>
+      <div class="b b2" style="background:#1d4ed8"></div>
+      <div class="lab mono"></div>
+    </div>
+
+    <div id="fl"></div>
+  </div>
+</div>
+
+<!-- Bottom Quick Controls Bar -->
+<div id="ctl-wrap">
+  <div id="ctl">
+    <button class="btn-icon" id="btn-pv" title="Previous Block">◀</button>
+    <select id="ctl-sel"></select>
+    <button class="btn-icon" id="btn-nx" title="Next Block">▶</button>
+    <button id="btn-pp">Pause</button>
+    <button id="btn-m5">−5 min</button>
+    <button id="btn-p5">+5 min</button>
+    <button id="btn-rs">Reset</button>
+    <button id="btn-fs">Fullscreen</button>
+    <button class="btn-more" id="btn-more">⚙ Control Panel</button>
+  </div>
+</div>
+
+<button id="hint">CONTROL ▸ · F fullscreen · 1–8 states</button>
+
+<script>
+/* ============ schedule.ts (Exact Timings & Block Definitions) ============ */
+const SCHEDULE = {
+  placeholder: true,
+  event: { name: 'IDEAX 2026', tagline: 'BUILD • CREATE • COMPETE' },
+  blocks: [
+    { state: 'welcome', label: 'WELCOME' },
+    { state: 'opening', label: 'OPENING' },
+    { state: 'development', label: 'SPRINT 01', sub: 'DAY 1 · BUILD', sec: 2 * 3600 },
+    { state: 'breakfast', label: 'BREAKFAST', sec: 45 * 60 },
+    { state: 'development', label: 'SPRINT 02', sub: 'DAY 1 · BUILD', sec: 3.5 * 3600 },
+    { state: 'lunch', label: 'LUNCH', sec: 3600 },
+    { state: 'development', label: 'SPRINT 03', sub: 'DAY 2 · BUILD', sec: 4 * 3600 },
+    { state: 'dinner', label: 'DINNER', sec: 3600 },
+    { state: 'development', label: 'FINAL SPRINT', sub: 'DAY 3 · SHIP IT', sec: 2 * 3600 },
+    { state: 'closing', label: 'CLOSING', sec: 8 }
+  ]
+};
+const MODES = ['welcome', 'opening', 'development', 'breakfast', 'lunch', 'dinner', 'announcement', 'closing'];
+
+/* ========================================================================= */
+/* ROBOT MASCOT (Faithfully Reconstructed from the User's Image)             */
+/* Features: Spherical white helmet, neon cyan glowing visor outline,        */
+/* curved arch happy eyes, open happy mouth with tongue, side headphones,    */
+/* blue suit with glowing 'X' chest logo, warm orange-tan trousers & legs.   */
+/* ========================================================================= */
+const RSVG = `<svg viewBox="0 0 320 380" width="320" height="380" style="overflow:visible">
+  <defs>
+    <linearGradient id="rHeadGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#e2e8f5"/>
+    </linearGradient>
+    <linearGradient id="rSuitGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <linearGradient id="rPantsGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f59e42"/>
+      <stop offset="100%" stop-color="#d97724"/>
+    </linearGradient>
+    <filter id="neonCyanGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <g class="jmp">
+    <g class="bob">
+      <!-- Legs & Feet (Seamless warm orange-tan matching user image) -->
+      <g class="lL">
+        <path d="M 108 274 Q 100 320 108 348 Q 128 356 146 348 Q 152 315 146 274 Z" fill="url(#rPantsGrad)"/>
+      </g>
+      <g class="lR">
+        <path d="M 174 274 Q 168 315 174 348 Q 192 356 212 348 Q 220 320 212 274 Z" fill="url(#rPantsGrad)"/>
+      </g>
+
+      <!-- Body: Vibrant Blue Suit with Large Glowing 'X' Chest Logo -->
+      <path d="M 88 165 C 88 165, 80 274, 160 274 C 240 274, 232 165, 232 165 Z" fill="url(#rSuitGrad)"/>
+      
+      <!-- Glowing X Logo on Chest -->
+      <g filter="url(#neonCyanGlow)">
+        <path d="M 144 200 L 176 236 M 176 200 L 144 236" stroke="#ffffff" stroke-width="10" stroke-linecap="round"/>
+        <path d="M 144 200 L 176 236 M 176 200 L 144 236" stroke="#5ee1ff" stroke-width="4" stroke-linecap="round"/>
+      </g>
+
+      <!-- Arms -->
+      <g class="aL">
+        <path d="M 72 175 Q 48 230 74 275" fill="none" stroke="url(#rSuitGrad)" stroke-width="32" stroke-linecap="round"/>
+        <circle cx="74" cy="275" r="16" fill="#1d4ed8"/>
+      </g>
+      <g class="aR">
+        <path d="M 248 175 Q 272 230 246 275" fill="none" stroke="url(#rSuitGrad)" stroke-width="32" stroke-linecap="round"/>
+        <circle cx="246" cy="275" r="16" fill="#1d4ed8"/>
+      </g>
+
+      <!-- Head Structure -->
+      <g class="head">
+        <!-- Spherical Helmet -->
+        <circle cx="160" cy="100" r="76" fill="url(#rHeadGrad)"/>
+        <!-- Soft 3D Lighting Highlight on Top -->
+        <ellipse cx="160" cy="46" rx="46" ry="18" fill="rgba(255,255,255,0.45)"/>
+
+        <!-- Blue Cylindrical Side Headphones -->
+        <g class="earL">
+          <rect x="76" y="80" width="16" height="42" rx="8" fill="#1d4ed8"/>
+          <ellipse cx="80" cy="101" rx="6" ry="15" fill="#3b82f6"/>
+          <path d="M 84 80 Q 95 60 110 50" stroke="#1d4ed8" stroke-width="6" fill="none" stroke-linecap="round"/>
+        </g>
+        <g class="earR">
+          <rect x="228" y="80" width="16" height="42" rx="8" fill="#1d4ed8"/>
+          <ellipse cx="240" cy="101" rx="6" ry="15" fill="#3b82f6"/>
+          <path d="M 236 80 Q 225 60 210 50" stroke="#1d4ed8" stroke-width="6" fill="none" stroke-linecap="round"/>
+        </g>
+
+        <!-- Dark Glossy Visor Screen with Neon Glowing Cyan Border -->
+        <path d="M 104 70 C 125 60, 195 60, 216 70 C 235 80, 235 118, 216 128 C 195 138, 125 138, 104 128 C 85 118, 85 80, 104 70 Z" 
+              fill="#060f2e" stroke="#00e5ff" stroke-width="4.5" filter="url(#neonCyanGlow)"/>
+
+        <!-- Visor Glass Curved Highlight -->
+        <path d="M 112 76 Q 160 68 208 76 Q 160 84 112 76" fill="rgba(255,255,255,0.22)"/>
+
+        <!-- Expressive Digital Glowing Curved Arch Eyes (^ ^) -->
+        <g class="eyes" filter="url(#neonCyanGlow)">
+          <path class="eye eyeL" d="M 118 104 Q 133 82 148 104" fill="none" stroke="#5ee1ff" stroke-width="9" stroke-linecap="round"/>
+          <path class="eye eyeR" d="M 172 104 Q 187 82 202 104" fill="none" stroke="#5ee1ff" stroke-width="9" stroke-linecap="round"/>
+        </g>
+
+        <!-- Open Cheerful Smiling Mouth with Cute Tongue (From User Photo) -->
+        <path class="mo" d="M 144 140 Q 160 166 176 140 Z" fill="#04081c"/>
+        <path d="M 152 150 Q 160 160 168 150 Z" fill="#ff4d6d"/>
+      </g>
+    </g>
+  </g>
+</svg>`;
+
+const R = s => '#robot ' + s;
+const Robot = {
+  mode: 'default',
+  mount() {
+    this.renderDefault();
+  },
+  renderDefault() {
+    this.mode = 'default';
+    $('#robot').innerHTML = RSVG;
+    gsap.set(R('.aL'), { svgOrigin: '81 180' });
+    gsap.set(R('.aR'), { svgOrigin: '239 180' });
+    gsap.set(R('.lL'), { svgOrigin: '127 280' });
+    gsap.set(R('.lR'), { svgOrigin: '193 280' });
+    gsap.set(R('.head'), { svgOrigin: '160 100' });
+    gsap.set(R('.eye,.mo'), { transformOrigin: '50% 50%' });
+  },
+  render3DLaptop() {
+    this.mode = '3d-laptop';
+    // Use the user's high-res 3D mascot render with glowing laptop
+    $('#robot').innerHTML = `
+      <div id="robot-3d-wrap" style="position:relative;width:100%;height:100%">
+        <img class="robot-3d-img" src="./mascot-clean.png" alt="IdeaX Mascot">
+        <!-- Dynamic Screen Light Glow on Face -->
+        <div id="lap-glow" style="position:absolute;left:20px;top:130px;width:160px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(94,225,255,0.45) 0%,transparent 70%);pointer-events:none;filter:blur(8px)"></div>
+      </div>
+    `;
+  },
+  rest() {
+    gsap.killTweensOf('#robot *');
+    if (this.mode === 'default') {
+      gsap.set(R('.aL,.aR,.lL,.lR,.head'), { rotation: 0, y: 0 });
+      gsap.set(R('.eye,.mo'), { scaleY: 1 });
+      gsap.set(R('.bob,.jmp'), { y: 0 });
+    } else {
+      gsap.set('#robot-3d-wrap', { y: 0 });
+    }
+  },
+  idle(d = 0) {
+    if (this.mode === '3d-laptop') {
+      gsap.to('#robot-3d-wrap', { y: -10, duration: 1.4, yoyo: true, repeat: -1, ease: 'sine.inOut', delay: d });
+      gsap.to('#lap-glow', { opacity: 0.5, duration: 0.4, yoyo: true, repeat: -1, ease: 'power1.inOut' });
+    } else {
+      gsap.to(R('.bob'), { y: -9, duration: 1.3, yoyo: true, repeat: -1, ease: 'sine.inOut', delay: d });
+      gsap.timeline({ repeat: -1, repeatDelay: 2.8, delay: d }).to(R('.eye'), { scaleY: 0.1, duration: 0.08, yoyo: true, repeat: 1 });
+    }
+  },
+  walk(sec, d = 0) {
+    if (this.mode === 'default') {
+      const n = Math.ceil(sec / 0.4) * 2 - 1;
+      gsap.to(R('.lL'), { rotation: 16, duration: 0.2, yoyo: true, repeat: n, ease: 'sine.inOut', delay: d });
+      gsap.to(R('.lR'), { rotation: -16, duration: 0.2, yoyo: true, repeat: n, ease: 'sine.inOut', delay: d });
+    }
+  },
+  look(deg, d = 0) {
+    if (this.mode === 'default') {
+      gsap.to(R('.head'), { rotation: deg, duration: 0.6, ease: 'power2.inOut', delay: d });
+    }
+  },
+  wave() {
+    if (this.mode === 'default') {
+      return gsap.timeline()
+        .to(R('.aR'), { rotation: -150, duration: 0.4, ease: 'power2.out' })
+        .to(R('.aR'), { rotation: -120, duration: 0.2, yoyo: true, repeat: 5 })
+        .to(R('.aR'), { rotation: 0, duration: 0.5 });
+    }
+    return gsap.timeline();
+  },
+  bite() {
+    if (this.mode === 'default') {
+      return gsap.timeline()
+        .to(R('.aR'), { rotation: -145, duration: 0.35, ease: 'power2.out' })
+        .to(R('.aR'), { rotation: -130, duration: 0.12, yoyo: true, repeat: 1 })
+        .to(R('.aR'), { rotation: 0, duration: 0.4, ease: 'power2.inOut' });
+    }
+    return gsap.timeline();
+  },
+  chew(n) {
+    if (this.mode === 'default') {
+      return gsap.timeline()
+        .to(R('.mo'), { scaleY: 2.6, duration: 0.11, yoyo: true, repeat: n * 2 - 1 })
+        .to(R('.head'), { y: 4, duration: 0.11, yoyo: true, repeat: n * 2 - 1 }, 0);
+    }
+    return gsap.timeline().to('#robot', { y: '+=6', duration: 0.12, yoyo: true, repeat: n * 2 - 1 });
+  },
+  type() {
+    if (this.mode === '3d-laptop') {
+      // Subtle fast finger-tapping oscillation on the laptop
+      return gsap.timeline({ repeat: -1 })
+        .to('#robot-3d-wrap', { rotate: 0.8, duration: 0.12, yoyo: true, repeat: 1, ease: 'power1.inOut' })
+        .to('#robot-3d-wrap', { rotate: -0.8, duration: 0.12, yoyo: true, repeat: 1, ease: 'power1.inOut' });
+    } else {
+      return gsap.timeline({ repeat: -1 })
+        .to(R('.aL'), { rotation: 35, duration: 0.14, yoyo: true, repeat: 1, ease: 'power1.inOut' })
+        .to(R('.aR'), { rotation: -35, duration: 0.14, yoyo: true, repeat: 1, ease: 'power1.inOut' });
+    }
+  },
+  react() {
+    return gsap.timeline()
+      .to('#robot', { y: '-=60', duration: 0.22, yoyo: true, repeat: 1, ease: 'power2.out' });
+  },
+  cheer() {
+    if (this.mode === 'default') {
+      gsap.to(R('.aL'), { rotation: 155, duration: 0.4, ease: 'back.out' });
+      gsap.to(R('.aR'), { rotation: -155, duration: 0.4, ease: 'back.out' });
+    }
+    gsap.timeline({ repeat: -1 })
+      .to('#robot', { y: '-=60', duration: 0.28, ease: 'power2.out' })
+      .to('#robot', { y: '+=60', duration: 0.34, ease: 'bounce.out' });
+  }
+};
+
+/* ============ store: event data → display state (mock, local + BroadcastChannel) ============ */
+const $ = s => document.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const sp = t => [...t].map(c => `<span class="ch" style="display:inline-block">${c === ' ' ? '&nbsp;' : c}</span>`).join('');
+const B = SCHEDULE.blocks;
+const DISPLAY = !/control/.test(location.hash + location.search);
+
+let S = { mode: 'welcome', prev: 'welcome', idx: 0, t: { dur: 0, run: false, dl: 0, rem: 0 }, ann: { title: '', msg: '' }, rev: 0, auto: false };
+try { const s = JSON.parse(localStorage.getItem('ideax-state')); if (s && s.t) S = s; } catch (e) {}
+
+let ch = null;
+try { ch = new BroadcastChannel('ideax-display'); } catch (e) {}
+
+const remMs = () => (S.t.run ? Math.max(0, S.t.dl - Date.now()) : S.t.rem);
+const tSet = s => { S.t.dur = s; S.t.rem = s * 1000; S.t.run = false; };
+const tStart = () => { if (!S.t.run && S.t.rem > 0) { S.t.run = true; S.t.dl = Date.now() + S.t.rem; } };
+const tPause = () => { if (S.t.run) { S.t.rem = remMs(); S.t.run = false; } };
+
+function setMode(m, i) {
+  S.idx = i ?? (B[S.idx].state === m ? S.idx : Math.max(0, B.findIndex(b => b.state === m)));
+  S.mode = m;
+  const b = B[S.idx];
+  if (m === 'welcome' || m === 'opening') tSet(0);
+  else if (m !== 'announcement' && b.sec) { tSet(b.sec); tStart(); }
+}
+
+function cmd(k, v) {
+  if (k === 'mode') setMode(v);
+  else if (k === 'next' && B[S.idx + 1]) setMode(B[S.idx + 1].state, S.idx + 1);
+  else if (k === 'prev' && B[S.idx - 1]) setMode(B[S.idx - 1].state, S.idx - 1);
+  else if (k === 'start') tStart();
+  else if (k === 'pause') tPause();
+  else if (k === 'reset') { S.t.run = false; S.t.rem = S.t.dur * 1000; }
+  else if (k === 'dur') tSet(v);
+  else if (k === 'ann') { if (S.mode !== 'announcement') S.prev = S.mode; S.ann = v; S.mode = 'announcement'; S.rev++; }
+  else if (k === 'clear') { S.mode = S.prev || 'development'; }
+  else if (k === 'auto') S.auto = v;
+  commit();
+}
+
+function commit() {
+  try { localStorage.setItem('ideax-state', JSON.stringify(S)); } catch (e) {}
+  ch && ch.postMessage({ k: 'state', S });
+  DISPLAY && onState();
+}
+
+const parseDur = v => {
+  const p = String(v).trim().split(':').map(Number);
+  if (p.some(isNaN)) return 0;
+  return p.reduce((a, x) => a * 60 + x, 0);
+};
+
+/* ============ background environment (Starlight Floating Particles) ============ */
+const BG = {
+  P: { r: 94, g: 225, b: 255, speed: 0.35, hz: 640, ring: 1 },
+  run() {
+    const canvas = $('#bg');
+    if (!canvas) return;
+    const g = canvas.getContext('2d'), P = this.P;
+    const pts = Array.from({ length: 65 }, () => ({
+      x: Math.random() * 1920,
+      y: Math.random() * 1080,
+      z: 0.3 + Math.random() * 0.7
+    }));
+    let last = performance.now();
+
+    const f = now => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      g.clearRect(0, 0, 1920, 1080);
+
+      // Light stardust rising smoothly
+      const col = a => `rgba(${P.r | 0},${P.g | 0},${P.b | 0},${a})`;
+      g.fillStyle = col(0.7);
+      for (const p of pts) {
+        p.y -= dt * 11 * p.z * (1 + P.speed * 0.5);
+        if (p.y < -5) {
+          p.y = 1085;
+          p.x = Math.random() * 1920;
+        }
+        g.globalAlpha = p.z * 0.45;
+        g.fillRect(p.x, p.y, 2.5 * p.z, 2.5 * p.z);
+      }
+      g.globalAlpha = 1;
+      requestAnimationFrame(f);
+    };
+    requestAnimationFrame(f);
+  }
+};
+
+/* ========================================================================= */
+/* COUNTDOWN TIMING & SPATIAL POSITIONS                                      */
+/* ========================================================================= */
+const CDL = {
+  hero: { x: 0, y: -70, scale: 0.94, opacity: 1 },
+  right: { x: 440, y: 30, scale: 0.64, opacity: 1 },
+  corner: { x: 580, y: -410, scale: 0.32, opacity: 1 },
+  device: { x: 0, y: -150, scale: 0.72, opacity: 1 },
+  hidden: { x: 0, y: 0, scale: 0.7, opacity: 0 }
+};
+
+const cdMove = (k, first) => gsap.to('#cd', { ...CDL[k], duration: first ? 0.01 : 1.3, ease: 'expo.inOut' });
+
+function cdText(sec, forceH) {
+  const H = forceH || S.t.dur >= 3600 || sec >= 3600 || S.mode === 'opening';
+  const p = n => String(n).padStart(2, '0');
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  const str = (H ? p(h) + ':' : '') + p(m) + ':' + p(s);
+  $('#cdd').innerHTML = [...str].map(c => (c === ':' ? '<span class="c">:</span>' : `<span>${c}</span>`)).join('');
+  const c = $('#cd').classList;
+  c.toggle('warn', sec > 0 && sec <= 60 && S.mode !== 'opening');
+  c.toggle('crit', sec > 0 && sec <= 10 && S.t.run);
+  $('#cdd').classList.toggle('has-h', H);
+}
+
+const CDLAB = {
+  welcome: () => '',
+  opening: () => 'HACKATHON TIMER · STANDBY',
+  development: b => 'TIME REMAINING · ' + b.label,
+  breakfast: () => 'BREAK ENDS IN',
+  lunch: () => 'BREAK ENDS IN',
+  dinner: () => 'BREAK ENDS IN',
+  announcement: () => '',
+  closing: () => 'FINAL COUNTDOWN'
+};
+const setCdLabel = () => { $('#cdl').textContent = CDLAB[S.mode](B[S.idx]); };
+
+let lastSec = -1;
+function tick() {
+  try {
+    const ms = remMs();
+    const sec = Math.ceil(ms / 1000);
+    if (sec !== lastSec) {
+      lastSec = sec;
+      cdText(sec);
+    }
+    $('#cdb').style.transform = `scaleX(${S.t.dur ? ms / (S.t.dur * 1000) : 0})`;
+    if (S.t.run && ms <= 0) {
+      S.t.run = false;
+      S.t.rem = 0;
+      onZero();
+    }
+  } catch (e) {}
+  requestAnimationFrame(tick);
+}
+
+function onZero() {
+  if (S.mode === 'closing') {
+    cur && cur.api && cur.api.fin && cur.api.fin();
+    commit();
+    return;
+  }
+  gsap.fromTo('#cd', { scale: '+=0' }, { keyframes: [{ scale: '*=1.08', duration: 0.15 }, { scale: '*=.926', duration: 0.4 }] });
+  if (S.auto && B[S.idx + 1]) cmd('next');
+  else commit();
+}
+
+/* ========================================================================= */
+/* SCENES ENGINE                                                             */
+/* ========================================================================= */
+const rIn = (L, from, dur, d) => {
+  gsap.set('#robot', { opacity: 1, scale: L.s, y: L.y, x: from === 'left' ? -620 : 2200 });
+  Robot.walk(dur, d);
+  gsap.to('#robot', { x: L.x, duration: dur, ease: 'power2.out', delay: d });
+};
+
+const head = (t, s, x = 100) =>
+  `<div class="abs sc" style="left:${x}px;top:76px"><div class="mono tag">${t}</div>${s ? `<div class="mono dim">${s}</div>` : ''}</div>`;
+
+const nextInfo = n =>
+  n ? `<div class="abs sc mono" style="right:100px;bottom:90px;text-align:right;font-size:28px;letter-spacing:.2em;color:var(--dim)">NEXT ▸ <span style="color:var(--ink)">${n.label}</span>${n.sec ? '<br><span style="font-size:20px">' + [Math.floor(n.sec / 3600), Math.floor((n.sec % 3600) / 60)].map(x => String(x).padStart(2, '0')).join(':') + ' H:M</span>' : ''}</div>` : '';
+
+const titleBig = (t, c) =>
+  `<div class="abs sc big" style="left:100px;top:110px;font-size:160px;line-height:1;color:${c || 'var(--ink)'};text-shadow:0 0 50px var(--acc-glow)">${t}</div>`;
+
+const SCN = {
+  welcome: {
+    name: 'WELCOME',
+    tint: [94, 225, 255],
+    speed: 0.35,
+    hz: 640,
+    cd: 'hidden',
+    robot: { x: 1230, y: 430, s: 1.5 },
+    html: () =>
+      `<div id="scan" class="abs" style="left:0;top:0;width:1920px;height:2px;background:rgba(94,225,255,.4);box-shadow:0 0 15px rgba(94,225,255,.6)"></div>
+       <div class="abs sc" style="left:130px;top:230px">
+         <div class="mono tag">// DISPLAY ONLINE</div>
+         <div class="big" id="w1" style="font-size:310px;line-height:.86;color:#ffffff;text-shadow:0 0 45px rgba(94,225,255,.5)">${sp('IDEAX')}</div>
+         <div class="big" id="w2" style="font-size:310px;line-height:.86;color:var(--acc);text-shadow:0 0 55px var(--acc-glow)">${sp('2026')}</div>
+         <div class="tagl" id="w3">${SCHEDULE.event.tagline}</div>
+       </div>`,
+    play(r, d) {
+      Robot.renderDefault();
+      gsap.fromTo('#scan', { y: 0 }, { y: 1080, duration: 5, repeat: -1, ease: 'none' });
+      gsap.timeline({ delay: d })
+        .set('.sc', { opacity: 1 })
+        .from('#w1 .ch,#w2 .ch', { yPercent: 115, opacity: 0, stagger: 0.07, duration: 0.9, ease: 'expo.out' })
+        .from('#w3', { opacity: 0, letterSpacing: '.7em', duration: 1.4, ease: 'power3.out' }, '-=.6');
+      rIn(this.robot, 'right', 2, d + 0.2);
+      Robot.idle(d + 2.3);
+      gsap.timeline({ delay: d + 3.4, repeat: -1, repeatDelay: 5 }).add(Robot.wave());
+    }
+  },
+
+  opening: {
+    name: 'OPENING',
+    sweep: true,
+    tint: [94, 225, 255],
+    speed: 0.5,
+    hz: 640,
+    cd: 'device',
+    robot: { x: 380, y: 384, s: 1.6 },
+    html: () =>
+      head('// OPENING SEQUENCE', '') +
+      `<div class="abs sc pe" id="st" style="left:880px;top:634px;width:260px;height:110px;cursor:pointer"><div class="btn">START</div></div>
+       <div class="abs sc mono" id="sth" style="left:880px;top:780px;width:260px;text-align:center;color:var(--sig);letter-spacing:.3em;font-size:22px;text-shadow:0 0 15px var(--acc)">PRESS TO BEGIN</div>`,
+    play(r, d) {
+      Robot.renderDefault();
+      let done = 0;
+      const L = this.robot;
+      gsap.set('#cd', { opacity: 1 });
+      gsap.timeline({ delay: d }).set('.sc:not(#st,#sth)', { opacity: 1 }).add(() => rIn(L, 'left', 2.2, 0), 0);
+      Robot.idle(d + 2.4);
+
+      const t = gsap.timeline({ delay: d + 2.2 });
+      t.add(() => Robot.look(-8))
+        .fromTo('#st', { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.7, ease: 'back.out(2.5)' })
+        .to('#sth', { opacity: 1, duration: 0.4 }, '<.3')
+        .to(R('.aR'), { rotation: -55, duration: 0.6, ease: 'power2.out' }, '<.2')
+        .to('#st .btn', { scale: 1.05, duration: 0.5, yoyo: true, repeat: -1, ease: 'sine.inOut' })
+        .call(() => go(), null, '-=0.01');
+      t.pause();
+      gsap.delayedCall(d + 5.7, () => go());
+      t.play();
+
+      function go() {
+        if (done++) return;
+        SC.add(() => {
+          gsap.killTweensOf('#st .btn');
+          gsap.killTweensOf('#robot .aR');
+          gsap.timeline()
+            .to(R('.aR'), { rotation: -98, duration: 0.4, ease: 'power2.out' })
+            .to('#st .btn', { scale: 0.88, duration: 0.09, ease: 'power2.in' })
+            .to(R('.aR'), { rotation: -88, duration: 0.09 }, '<')
+            .add(shock)
+            .to('#st .btn', { scale: 1, duration: 0.5, ease: 'elastic.out(1,.4)' })
+            .to(R('.aR'), { rotation: 0, duration: 0.7, ease: 'power3.inOut' }, '<.15')
+            .add(begin, '+=.05');
+        });
+      }
+      $('#st').onclick = go;
+
+      function shock() {
+        const e = document.createElement('div');
+        e.className = 'ring';
+        e.style.left = '1010px';
+        e.style.top = '689px';
+        $('#stage').appendChild(e);
+        gsap.fromTo(e, { scale: 0, opacity: 1 }, { scale: 40, opacity: 0, duration: 1.1, ease: 'power2.out', onComplete: () => e.remove() });
+        gsap.fromTo('#fl', { opacity: 0.7 }, { opacity: 0, duration: 0.6 });
+      }
+
+      function begin() {
+        const nb = B[S.idx + 1], o = { v: 0 };
+        $('#cdl').textContent = 'INITIALISING…';
+        gsap.to(o, { v: nb ? nb.sec : 0, duration: 1.4, ease: 'power2.inOut', onUpdate: () => cdText(Math.round(o.v), true), onComplete: () => cmd('next') });
+      }
+    }
+  },
+
+  /* DEVELOPMENT & SPRINTS: Robot holding and coding on the laptop */
+  development: {
+    name: 'DEVELOPMENT',
+    sweep: true,
+    tint: [94, 225, 255],
+    speed: 1.1,
+    hz: 640,
+    cd: 'hero',
+    robot: { x: 140, y: 680, s: 1.1 },
+    html: (b, n) =>
+      head(b.label, b.sub) +
+      nextInfo(n).replace('bottom:90px', 'top:76px').replace('right:100px', 'right:100px') +
+      `<!-- Live Terminal Stream next to coding mascot -->
+       <div class="abs sc mono" id="lg" style="left:560px;bottom:75px;font-size:20px;color:var(--dim);width:760px;height:120px;overflow:hidden;line-height:1.5;background:rgba(3,11,40,0.75);padding:14px 22px;border-radius:14px;border:1px solid rgba(94,225,255,0.3);backdrop-filter:blur(10px)"></div>`,
+    play(r, d) {
+      // Mount the exact 3D Mascot from the user's photo using his laptop!
+      Robot.render3DLaptop();
+      const pool = ['> git commit -m "ship it"', '> npm run build   ✓', '> deploying preview…', '> all tests passing', '> demo ready?', '> merge conflict resolved', '> syncing blocks…'];
+      let i = 0;
+      gsap.timeline({ delay: d }).to('.sc', { opacity: 1, duration: 0.01 }).from('.sc', { y: 40, stagger: 0.1, duration: 0.8, ease: 'expo.out' });
+      gsap.timeline({ repeat: -1, delay: d }).call(() => {
+        const lg = $('#lg');
+        if (!lg) return;
+        const l = document.createElement('div');
+        l.innerHTML = `<span style="color:var(--acc);margin-right:8px">●</span>` + pool[i++ % pool.length];
+        lg.appendChild(l);
+        if (lg.children.length > 4) lg.firstChild.remove();
+      }).to({}, { duration: 1.6 });
+
+      rIn(this.robot, 'left', 1.4, d + 0.3);
+      Robot.idle(d + 1.7);
+      Robot.type();
+    }
+  },
+
+  /* BREAKFAST: Robot holding and eating a delicious breakfast sandwich with coffee */
+  breakfast: {
+    name: 'BREAKFAST',
+    ring: 0,
+    tint: [255, 190, 80],
+    speed: 0.25,
+    hz: 700,
+    cd: 'right',
+    robot: { x: 220, y: 460, s: 1.6 },
+    html: (b, n) =>
+      titleBig('BREAKFAST', '#ffc46b') +
+      nextInfo(n) +
+      `<div class="abs sc" style="left:0;top:940px;width:1920px;height:140px;background:rgba(3,11,40,0.85);border-top:3px solid var(--acc);backdrop-filter:blur(12px)"></div>
+       <!-- Breakfast Tray with Sandwich & Hot Coffee -->
+       <div id="bf-tray" class="abs sc" style="left:540px;top:720px;width:380px;height:240px;z-index:6">
+         <svg viewBox="0 0 380 240" width="380" height="240" style="overflow:visible">
+           <ellipse cx="190" cy="180" rx="170" ry="30" fill="rgba(94, 225, 255, 0.15)"/>
+           <rect x="30" y="160" width="320" height="30" rx="10" fill="#0d1f54" stroke="#3b82f6" stroke-width="2"/>
+           <!-- Steaming Coffee Cup -->
+           <g id="bf-mug">
+             <rect x="60" y="110" width="60" height="65" rx="8" fill="#1d4ed8" stroke="#5ee1ff" stroke-width="2"/>
+             <path d="M 120 120 H 138 A 12 12 0 0 1 138 155 H 120" fill="none" stroke="#5ee1ff" stroke-width="6"/>
+             <ellipse cx="90" cy="114" rx="26" ry="8" fill="#382110"/>
+             <text x="90" y="148" text-anchor="middle" font-size="20" font-family="'JetBrains Mono', monospace" font-weight="900" fill="#ffffff">X</text>
+             <path class="stm" d="M 80 100 Q 72 85 80 70 M 92 100 Q 102 85 92 70 M 104 100 Q 96 85 104 70" fill="none" stroke="#5ee1ff" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+           </g>
+           <!-- Multi-Layer Breakfast Sandwich -->
+           <g id="bf-sandwich" style="transform-origin: 250px 140px">
+             <polygon points="170,140 260,80 340,140" fill="#d99a4a" stroke="#f7dfa8" stroke-width="2"/>
+             <rect x="180" y="140" width="150" height="12" rx="4" fill="#c94a5e"/>
+             <path d="M 175 152 H 335 L 320 168 L 300 152 L 280 172 L 260 152 L 230 170 L 210 152 Z" fill="#ffc93c"/>
+             <path d="M 170 154 Q 185 168 200 154 Q 215 168 230 154 Q 245 168 260 154 Q 275 168 290 154 Q 305 168 320 154 Q 335 168 345 154" fill="none" stroke="#52b740" stroke-width="8" stroke-linecap="round"/>
+             <rect x="190" y="162" width="130" height="12" rx="4" fill="#ffffff"/>
+             <circle cx="255" cy="168" r="5" fill="#ffa726"/>
+             <polygon points="170,174 260,174 340,174 330,195 180,195" fill="#b8782f"/>
+           </g>
+         </svg>
+       </div>`,
+    play(r, d) {
+      Robot.renderDefault();
+      gsap.timeline({ delay: d }).to('.sc', { opacity: 1, duration: 0.01 }).from('.sc', { y: 50, stagger: 0.1, duration: 0.9, ease: 'expo.out' });
+      rIn(this.robot, 'left', 1.6, d + 0.2);
+      Robot.idle(d + 1.9);
+
+      // Sandwich eating animation: Robot brings sandwich up, takes bites and chews
+      const sw = $('#bf-sandwich');
+      const tl = gsap.timeline({ delay: d + 2.2, repeat: -1, repeatDelay: 1.2 });
+      tl.set(sw, { x: 0, y: 0, scale: 1, rotation: 0 })
+        .to(sw, { x: -170, y: -70, rotation: -22, duration: 0.8, ease: 'power2.inOut' })
+        .add(Robot.bite(), '<.2')
+        .add(Robot.chew(3), '+=0.1')
+        .to(sw, { x: 0, y: 0, rotation: 0, duration: 0.8, ease: 'power2.inOut' }, '+=0.4')
+        .to(sw, { x: -170, y: -70, rotation: -28, duration: 0.8, ease: 'power2.inOut' }, '+=0.8')
+        .add(Robot.bite(), '<.2')
+        .add(Robot.chew(3), '+=0.1')
+        .to(sw, { x: 0, y: 0, rotation: 0, duration: 0.8, ease: 'power2.inOut' }, '+=0.4');
+    }
+  },
+
+  /* LUNCH: Robot eating lunch burger & drink */
+  lunch: {
+    name: 'LUNCH',
+    ring: 0,
+    tint: [210, 225, 80],
+    speed: 0.3,
+    hz: 690,
+    cd: 'right',
+    robot: { x: 220, y: 460, s: 1.6 },
+    html: (b, n) =>
+      titleBig('LUNCH', '#8dffb0') +
+      nextInfo(n) +
+      `<div class="abs sc" style="left:0;top:940px;width:1920px;height:140px;background:rgba(3,11,40,0.85);border-top:3px solid var(--acc);backdrop-filter:blur(12px)"></div>
+       <!-- Lunch Burger & Drink Setup -->
+       <div id="lu-tray" class="abs sc" style="left:540px;top:710px;width:380px;height:250px;z-index:6">
+         <svg viewBox="0 0 380 250" width="380" height="250" style="overflow:visible">
+           <ellipse cx="190" cy="200" rx="170" ry="30" fill="rgba(94, 225, 255, 0.15)"/>
+           <rect x="30" y="180" width="320" height="30" rx="10" fill="#0d1f54" stroke="#3b82f6" stroke-width="2"/>
+           <!-- Cold Drink -->
+           <g id="lu-drink">
+             <polygon points="70,120 110,120 102,185 78,185" fill="#1d4ed8" stroke="#5ee1ff" stroke-width="2"/>
+             <rect x="66" y="114" width="48" height="8" rx="2" fill="#ffffff"/>
+             <line x1="90" y1="114" x2="105" y2="75" stroke="#5ee1ff" stroke-width="5" stroke-linecap="round"/>
+             <text x="90" y="160" text-anchor="middle" font-size="14" font-family="'JetBrains Mono', monospace" font-weight="900" fill="#ffffff">X</text>
+           </g>
+           <!-- Big Gourmet Burger -->
+           <g id="lu-burger" style="transform-origin: 250px 140px">
+             <path d="M 180 120 Q 250 65 320 120 Z" fill="#e6a04a" stroke="#d98b3a" stroke-width="2"/>
+             <ellipse cx="225" cy="98" rx="3" ry="1.5" fill="#fdf2d2"/><ellipse cx="250" cy="85" rx="3" ry="1.5" fill="#fdf2d2"/><ellipse cx="275" cy="95" rx="3" ry="1.5" fill="#fdf2d2"/>
+             <rect x="186" y="122" width="128" height="12" rx="4" fill="#e63946"/>
+             <path d="M 180 134 H 320 L 305 152 L 285 134 L 260 156 L 240 134 L 215 154 L 195 134 Z" fill="#ffc93c"/>
+             <rect x="180" y="142" width="140" height="24" rx="8" fill="#4a2810"/>
+             <path d="M 175 166 Q 195 180 215 166 Q 235 180 255 166 Q 275 180 295 166 Q 315 180 330 166" fill="none" stroke="#52b740" stroke-width="9" stroke-linecap="round"/>
+             <path d="M 186 172 H 314 Q 314 195 250 195 Q 186 195 186 172 Z" fill="#d98b3a"/>
+           </g>
+         </svg>
+       </div>`,
+    play(r, d) {
+      Robot.renderDefault();
+      gsap.timeline({ delay: d }).to('.sc', { opacity: 1, duration: 0.01 }).from('.sc', { y: 50, stagger: 0.1, duration: 0.9, ease: 'expo.out' });
+      rIn(this.robot, 'left', 1.6, d + 0.2);
+      Robot.idle(d + 1.9);
+
+      // Burger eating animation
+      const bg = $('#lu-burger');
+      const tl = gsap.timeline({ delay: d + 2.2, repeat: -1, repeatDelay: 1.2 });
+      tl.set(bg, { x: 0, y: 0, scale: 1, rotation: 0 })
+        .to(bg, { x: -170, y: -70, rotation: -20, duration: 0.8, ease: 'power2.inOut' })
+        .add(Robot.bite(), '<.2')
+        .add(Robot.chew(3), '+=0.1')
+        .to(bg, { x: 0, y: 0, rotation: 0, duration: 0.8, ease: 'power2.inOut' }, '+=0.4')
+        .to(bg, { x: -170, y: -70, rotation: -25, duration: 0.8, ease: 'power2.inOut' }, '+=0.8')
+        .add(Robot.bite(), '<.2')
+        .add(Robot.chew(3), '+=0.1')
+        .to(bg, { x: 0, y: 0, rotation: 0, duration: 0.8, ease: 'power2.inOut' }, '+=0.4');
+    }
+  },
+
+  /* DINNER: Robot eating hot ramen dinner bowl with chopsticks */
+  dinner: {
+    name: 'DINNER',
+    ring: 0,
+    tint: [70, 120, 255],
+    speed: 0.2,
+    hz: 720,
+    cd: 'right',
+    robot: { x: 220, y: 460, s: 1.6 },
+    html: (b, n) =>
+      titleBig('DINNER', '#9dc3ff').replace('top:110px', 'top:120px') +
+      nextInfo(n) +
+      `<div class="abs sc" style="left:0;top:940px;width:1920px;height:140px;background:rgba(3,11,40,0.85);border-top:3px solid var(--acc);backdrop-filter:blur(12px)"></div>
+       <!-- Steaming Ramen Dinner Bowl Setup -->
+       <div id="dn-tray" class="abs sc" style="left:530px;top:690px;width:400px;height:270px;z-index:6">
+         <svg viewBox="0 0 400 270" width="400" height="270" style="overflow:visible">
+           <ellipse cx="200" cy="210" rx="180" ry="30" fill="rgba(94, 225, 255, 0.15)"/>
+           <rect x="30" y="190" width="340" height="30" rx="10" fill="#0d1f54" stroke="#3b82f6" stroke-width="2"/>
+           <!-- Ramen Bowl -->
+           <g id="dn-bowl">
+             <path d="M 80 110 H 300 Q 290 205 190 205 Q 90 205 80 110 Z" fill="#eaf6ff" stroke="#1d4ed8" stroke-width="4"/>
+             <path d="M 80 120 H 300" stroke="#1d4ed8" stroke-width="4"/>
+             <ellipse cx="190" cy="115" rx="105" ry="18" fill="#8a4b18"/>
+             <path d="M 110 115 Q 140 125 170 115 Q 200 125 230 115 Q 260 125 280 115" stroke="#f6d365" stroke-width="7" fill="none" stroke-linecap="round"/>
+             <path d="M 120 118 Q 150 128 180 118 Q 210 128 240 118 Q 270 128 285 118" stroke="#f6d365" stroke-width="6" fill="none" stroke-linecap="round"/>
+             <ellipse cx="140" cy="110" rx="20" ry="14" fill="#ffffff" transform="rotate(-15 140 110)"/>
+             <ellipse cx="140" cy="110" rx="11" ry="8" fill="#ff7a00" transform="rotate(-15 140 110)"/>
+             <ellipse cx="240" cy="112" rx="16" ry="12" fill="#ffffff"/>
+             <path d="M 235 112 Q 240 106 245 112 Q 240 118 235 112" stroke="#ff4d8d" stroke-width="3" fill="none"/>
+             <rect x="180" y="105" width="8" height="6" rx="2" fill="#52b740"/><rect x="195" y="108" width="8" height="6" rx="2" fill="#52b740"/>
+             <!-- Rising Warm Steam -->
+             <path class="stm" d="M 150 95 Q 140 75 150 55 M 190 90 Q 205 70 190 50 M 230 95 Q 220 75 230 55" stroke="#5ee1ff" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.8"/>
+             <!-- Chopsticks with noodles lifted -->
+             <g id="dn-chopsticks" style="transform-origin: 210px 100px">
+               <line x1="280" y1="30" x2="160" y2="105" stroke="#a06030" stroke-width="5" stroke-linecap="round"/>
+               <line x1="285" y1="42" x2="165" y2="110" stroke="#8c5025" stroke-width="5" stroke-linecap="round"/>
+               <path d="M 165 110 Q 145 90 120 70 M 170 108 Q 150 92 125 75 M 175 112 Q 155 94 130 78" stroke="#f6d365" stroke-width="5" fill="none" stroke-linecap="round"/>
+             </g>
+           </g>
+         </svg>
+       </div>`,
+    play(r, d) {
+      Robot.renderDefault();
+      gsap.timeline({ delay: d }).to('.sc', { opacity: 1, duration: 0.01 }).from('.sc', { y: 50, stagger: 0.1, duration: 0.9, ease: 'expo.out' });
+      rIn(this.robot, 'left', 1.6, d + 0.2);
+      Robot.idle(d + 1.9);
+
+      // Chopsticks slurping noodles animation
+      const cp = $('#dn-chopsticks');
+      const tl = gsap.timeline({ delay: d + 2.2, repeat: -1, repeatDelay: 1.0 });
+      tl.set(cp, { x: 0, y: 0, scale: 1, rotation: 0 })
+        .to(cp, { x: -160, y: -70, rotation: -20, duration: 0.9, ease: 'power2.inOut' })
+        .add(Robot.bite(), '<.2')
+        .add(Robot.chew(4), '+=0.1')
+        .to(cp, { x: 0, y: 0, rotation: 0, duration: 0.9, ease: 'power2.inOut' }, '+=0.4');
+    }
+  },
+
+  announcement: {
+    name: 'ANNOUNCEMENT',
+    sweep: true,
+    tint: [255, 70, 70],
+    speed: 0.5,
+    hz: 700,
+    cd: 'corner',
+    robot: { x: 1400, y: 512, s: 1.3 },
+    html: () =>
+      `<div id="ab" class="abs" style="left:0;top:190px;width:24px;height:700px;background:var(--acc);box-shadow:0 0 20px var(--acc)"></div>
+       <div id="ann" class="abs" style="left:120px;top:210px;width:1200px">${annInner()}</div>
+       <div class="abs mono" id="ex" style="left:1560px;top:330px;font-size:200px;font-weight:800;color:var(--acc);text-shadow:0 0 35px var(--acc-glow)">!</div>`,
+    play(r, d) {
+      Robot.renderDefault();
+      gsap.from('#ab', { scaleY: 0, transformOrigin: '50% 0', duration: 0.9, ease: 'expo.out', delay: d });
+      annIn(d + 0.2);
+      gsap.from('#ex', { scale: 0, opacity: 0, duration: 0.6, ease: 'back.out(3)', delay: d + 0.8 });
+      gsap.to('#ex', { y: -14, duration: 0.5, yoyo: true, repeat: -1, delay: d + 1.4 });
+      rIn(this.robot, 'right', 1.2, d);
+      Robot.idle(d + 1.3);
+      gsap.timeline({ delay: d + 1.3 }).add(Robot.react());
+    }
+  },
+
+  closing: {
+    name: 'CLOSING',
+    sweep: true,
+    tint: [94, 225, 255],
+    speed: 1.6,
+    hz: 640,
+    cd: 'hero',
+    robot: { x: 1450, y: 512, s: 1.3 },
+    html: () =>
+      head('// EVENT COMPLETE', '') +
+      `<div id="fin" class="abs" style="left:110px;top:150px;opacity:0">
+         <div class="big" id="f1" style="font-size:290px;line-height:.95;color:#ffffff;text-shadow:0 0 45px rgba(94,225,255,.6)">${sp('IDEAX 2026')}</div>
+         <div class="big" id="f3" style="font-size:110px;color:var(--acc);margin-top:20px;white-space:nowrap;text-shadow:0 0 40px var(--acc-glow)">THANK YOU, BUILDERS</div>
+         <div class="tagl" id="f4" style="font-size:34px">BUILD • CREATE • COMPETE</div>
+       </div>`,
+    play(r, d) {
+      Robot.renderDefault();
+      let fired = 0;
+      gsap.timeline({ delay: d }).to('.sc', { opacity: 1, duration: 0.01 });
+      rIn(this.robot, 'right', 1.4, d);
+      Robot.idle(d + 1.5);
+      gsap.to(R('.aR'), { rotation: -20, duration: 0.5, yoyo: true, repeat: -1, delay: d + 1 });
+
+      return {
+        fin() {
+          if (fired++) return;
+          SC.add(() => {
+            const t = gsap.timeline();
+            t.to('#cd', { scale: 1.7, opacity: 0, duration: 0.6, ease: 'power3.in' }, 0)
+              .fromTo('#fl', { opacity: 1 }, { opacity: 0, duration: 0.9 }, 0.05)
+              .set('#fin', { opacity: 1 }, 0.2)
+              .from('#f1 .ch', { yPercent: 120, scale: 1.5, opacity: 0, stagger: 0.07, duration: 0.8, ease: 'expo.out' }, 0.3)
+              .from('#f3', { clipPath: 'inset(0 100% 0 0)', duration: 1.1, ease: 'power4.out' }, 1.2)
+              .from('#f4', { opacity: 0, duration: 1 }, 2);
+            Robot.rest();
+            gsap.set(R('.head'), { rotation: 0 });
+            Robot.cheer();
+            for (let i = 0; i < 70; i++) {
+              const c = document.createElement('i');
+              c.className = 'cf';
+              c.style.background = ['#5ee1ff', '#ffffff', '#2563eb', '#ffd166'][i % 4];
+              r.appendChild(c);
+              gsap.fromTo(c, {
+                x: Math.random() * 1900,
+                y: -60 - Math.random() * 400,
+                rotation: Math.random() * 360
+              }, {
+                y: 1150,
+                rotation: '+=540',
+                duration: 3 + Math.random() * 3,
+                repeat: -1,
+                ease: 'none',
+                delay: Math.random() * 2
+              });
+            }
+          });
+        }
+      };
+    }
+  }
+};
+
+function annInner() {
+  const a = S.ann,
+    t = a.title || 'ANNOUNCEMENT',
+    m = a.msg || '',
+    fs = t.length <= 14 ? 220 : t.length <= 24 ? 160 : 110,
+    ms = m.length <= 90 ? 60 : m.length <= 200 ? 46 : 36;
+  return `<div class="mono tag" id="at"><i class="dot"></i>ANNOUNCEMENT</div>
+          <div class="big" id="ati" style="font-size:${fs}px;line-height:.95;margin:22px 0 30px;color:#ffffff;text-shadow:0 0 40px rgba(94,225,255,.5)">
+            ${t.split(' ').map(w => `<span style="display:inline-block;overflow:hidden;vertical-align:bottom;margin-right:.25em"><span class="w" style="display:inline-block">${esc(w)}</span></span>`).join('')}
+          </div>
+          <div id="amg" style="font-size:${ms}px;line-height:1.3;max-width:1150px;color:#eaf6ff;background:rgba(3,11,40,0.65);padding:14px 24px;border-radius:14px;border:1px solid rgba(94,225,255,0.25);backdrop-filter:blur(10px)">${esc(m)}</div>`;
+}
+
+const annIn = d =>
+  gsap.timeline({ delay: d })
+    .from('#at', { opacity: 0, x: -60, duration: 0.5, ease: 'power3.out' })
+    .from('#ati .w', { yPercent: 120, skewY: 8, stagger: 0.09, duration: 0.8, ease: 'expo.out' }, '-=.2')
+    .from('#amg', { opacity: 0, y: 30, duration: 0.8, ease: 'power2.out' }, '-=.3');
+
+/* ============ display shell: transitions engine ============ */
+let cur = null, SC = null, shown = null, busy = false, pend = null, shownRev = -1;
+
+function mount(mode, d) {
+  if (cur) {
+    cur.ctx.kill();
+    cur.root.remove();
+  }
+  Robot.rest();
+  const sc = SCN[mode], b = B[S.idx], n = B[S.idx + 1], root = document.createElement('div');
+  root.className = 'abs';
+  root.style.cssText = 'inset:0';
+  root.innerHTML = sc.html(b, n);
+  $('#scene').appendChild(root);
+  $('#robot').style.pointerEvents = mode === 'opening' ? 'auto' : 'none';
+  $('#robot').style.zIndex = mode === 'opening' ? 4 : 5;
+  const ctx = gsap.context(() => {});
+  SC = ctx;
+  cur = { mode, ctx, root };
+  ctx.add(() => { cur.api = sc.play(root, d, b, n) || {}; });
+  setCdLabel();
+  shownRev = S.rev;
+}
+
+function sweep(name) {
+  const t = gsap.timeline();
+  $('#sw .lab').textContent = '▸ ' + name;
+  t.set('#sw', { display: 'block' })
+    .set('#sw .b', { skewX: -12 })
+    .fromTo('#sw .b1', { xPercent: -120 }, { xPercent: 0, duration: 0.55, ease: 'power3.in' })
+    .fromTo('#sw .b2', { xPercent: -120 }, { xPercent: 0, duration: 0.55, ease: 'power3.in' }, 0.12)
+    .fromTo('#sw .lab', { opacity: 0, x: -80 }, { opacity: 1, x: 0, duration: 0.35, ease: 'power3.out' }, 0.55)
+    .to('#sw .lab', { opacity: 0, duration: 0.2 }, 1)
+    .to('#sw .b1', { xPercent: 120, duration: 0.6, ease: 'power3.out' }, 0.95)
+    .to('#sw .b2', { xPercent: 120, duration: 0.6, ease: 'power3.out' }, 0.85)
+    .set('#sw', { display: 'none' });
+  return t;
+}
+
+function goto(mode) {
+  if (busy) {
+    pend = mode;
+    return;
+  }
+  busy = true;
+  shown = mode;
+  const sc = SCN[mode], prev = cur, first = !prev, hs = !first && sc.sweep;
+  const tl = gsap.timeline({
+    onComplete() {
+      busy = false;
+      if (pend) {
+        const m = pend;
+        pend = null;
+        if (m !== shown) goto(m);
+      }
+    }
+  });
+
+  if (prev) {
+    tl.to(prev.root, { opacity: 0, duration: 0.6 }, 0)
+      .to('#scene .sc', { y: -30, duration: 0.6, stagger: 0.03 }, 0)
+      .to('#robot', { x: -700, duration: 0.8, ease: 'power2.in' }, 0);
+  }
+  tl.add(cdMove(sc.cd, first), first ? 0 : 0.1)
+    .to(BG.P, {
+      r: sc.tint[0],
+      g: sc.tint[1],
+      b: sc.tint[2],
+      speed: sc.speed,
+      hz: sc.hz,
+      ring: sc.ring ?? 1,
+      duration: first ? 0.1 : 1.6,
+      ease: 'power2.inOut'
+    }, 0.2);
+  if (hs) tl.add(sweep(sc.name), 0.25);
+  tl.call(() => mount(mode, hs ? 0.5 : 0.15), null, first ? 0.05 : 1)
+    .to({}, { duration: 0.2 }, first ? 0.05 : 1);
+  tl.call(() => { lastSec = -1; }, null, 1.1);
+}
+
+function onState() {
+  if (S.mode !== shown) {
+    goto(S.mode);
+  } else if (S.mode === 'announcement' && S.rev !== shownRev) {
+    shownRev = S.rev;
+    $('#ann').innerHTML = annInner();
+    SC.add(() => { annIn(0); Robot.react(); });
+  } else {
+    setCdLabel();
+  }
+  lastSec = -1;
+}
+
+/* ============ control panel ============ */
+function mountControl(host, full) {
+  let live = true, pong = DISPLAY ? Infinity : 0;
+  host.innerHTML = `<h2>IDEAX 2026 — DISPLAY CONTROL</h2><small id="cs"></small><div class="g" id="cm">${MODES.map(m => `<button data-m="${m}">${m}</button>`).join('')}</div>
+  <small>COUNTDOWN</small><div class="rd" id="cr">--:--:--</div><small id="cb"></small>
+  <div class="r"><button data-c="start">Start</button><button data-c="pause">Pause</button><button data-c="reset">Reset</button></div>
+  <div class="r"><input type="text" id="cdur" placeholder="hh:mm:ss"><button data-c="dur" style="flex:0 0 90px">Set</button><button data-c="t10" style="flex:0 0 90px">10s</button></div>
+  <small>ANNOUNCEMENT</small><input type="text" id="at2" placeholder="Title"><textarea id="am2" rows="3" placeholder="Message"></textarea>
+  <div class="r"><button data-c="ann" class="on">Display</button><button data-c="clear">Clear</button></div>
+  <div class="r"><button data-c="next">Next block ▸</button><button data-c="auto" id="au">Auto: off</button></div>
+  <small>Schedule: IDEAX 2026 · sync: BroadcastChannel</small>`;
+
+  host.onclick = e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    const m = b.dataset.m, c = b.dataset.c;
+    if (m) cmd('mode', m);
+    else if (c === 'dur') cmd('dur', parseDur($('#cdur').value));
+    else if (c === 't10') cmd('dur', 10);
+    else if (c === 'ann') cmd('ann', { title: $('#at2').value.trim(), msg: $('#am2').value.trim() });
+    else if (c === 'auto') cmd('auto', !S.auto);
+    else if (c) cmd(c);
+  };
+
+  if (ch) {
+    const old = ch.onmessage;
+    ch.onmessage = e => {
+      const d = e.data;
+      if (d.k === 'state' && !DISPLAY) S = d.S;
+      if (d.k === 'ping' && DISPLAY) ch.postMessage({ k: 'pong' });
+      if (d.k === 'pong') pong = Date.now();
+      if (old) old(e);
+    };
+  }
+  setInterval(() => ch && !DISPLAY && ch.postMessage({ k: 'ping' }), 3000);
+  ch && !DISPLAY && ch.postMessage({ k: 'ping' });
+
+  const loop = () => {
+    if (host.offsetParent !== null || full) {
+      const ms = remMs(), s = Math.ceil(ms / 1000), p = n => String(n).padStart(2, '0');
+      $('#cr').textContent = `${p(Math.floor(s / 3600))}:${p(Math.floor((s % 3600) / 60))}:${p(s % 60)}`;
+      $('#cb').textContent = S.t.run ? 'RUNNING' : ms > 0 ? 'PAUSED' : 'STOPPED';
+      $$('[data-m]', host).forEach(b => b.classList.toggle('on', b.dataset.m === S.mode));
+      $('#au').textContent = 'Auto: ' + (S.auto ? 'on' : 'off');
+      const ok = DISPLAY || Date.now() - pong < 7000;
+      $('#cs').innerHTML = ok ? '<span class="ok">● DISPLAY CONNECTED</span>' : '○ NO DISPLAY DETECTED — open this page (no #control) in another tab';
+      $('#cs').innerHTML += ' · ' + B[S.idx].label;
+    }
+    const sel = $('#ctl-sel');
+    if (sel && sel.value !== String(S.idx)) sel.value = String(S.idx);
+    const pp = $('#btn-pp');
+    if (pp) pp.textContent = S.t.run ? 'Pause' : 'Resume';
+
+    requestAnimationFrame(loop);
+  };
+  loop();
+}
+
+/* ============ quick control toolbar event bindings ============ */
+function initScreenshotBar(togglePanel) {
+  const sel = $('#ctl-sel');
+  if (sel) {
+    sel.innerHTML = B.map((b, i) => `<option value="${i}">${b.state.toUpperCase()} (${b.label})</option>`).join('');
+    sel.value = String(S.idx);
+    sel.onchange = e => {
+      const i = +e.target.value;
+      setMode(B[i].state, i);
+      commit();
+    };
+  }
+
+  $('#btn-pv').onclick = () => {
+    if (S.idx > 0) cmd('mode', B[S.idx - 1].state);
+    else cmd('mode', B[B.length - 1].state);
+  };
+  $('#btn-nx').onclick = () => {
+    if (S.idx < B.length - 1) cmd('mode', B[S.idx + 1].state);
+    else cmd('mode', B[0].state);
+  };
+  $('#btn-pp').onclick = () => {
+    cmd(S.t.run ? 'pause' : 'start');
+  };
+  $('#btn-m5').onclick = () => {
+    if (S.t.dur) {
+      S.t.rem = Math.max(0, S.t.rem - 300000);
+      if (S.t.run) S.t.dl = Date.now() + S.t.rem;
+      commit();
+    }
+  };
+  $('#btn-p5').onclick = () => {
+    if (S.t.dur) {
+      S.t.rem += 300000;
+      if (S.t.run) S.t.dl += 300000;
+      S.t.dur = Math.max(S.t.dur, Math.ceil(S.t.rem / 1000));
+      commit();
+    }
+  };
+  $('#btn-rs').onclick = () => cmd('reset');
+  $('#btn-fs').onclick = () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen());
+  $('#btn-more').onclick = () => togglePanel();
+
+  const ctl = $('#ctl');
+  addEventListener('mousemove', e => {
+    if (e.clientY >= window.innerHeight - 85) {
+      ctl.classList.add('show');
+      $('#vp').classList.add('show-cursor');
+    } else {
+      ctl.classList.remove('show');
+      if ($('.cp.ov') && $('.cp.ov').style.display !== 'block') {
+        $('#vp').classList.remove('show-cursor');
+      }
+    }
+  });
+}
+
+/* ============ boot ============ */
+if (DISPLAY) {
+  Robot.mount();
+  BG.run();
+  S.mode !== 'closing' || 0;
+
+  const fit = () => {
+    const v = $('#vp');
+    $('#stage').style.transform = `scale(${Math.min(v.clientWidth / 1920, v.clientHeight / 1080)})`;
+  };
+  fit();
+  addEventListener('resize', fit);
+
+  const cp = document.createElement('div');
+  cp.className = 'cp ov';
+  document.body.appendChild(cp);
+  mountControl(cp, false);
+
+  const toggle = () => {
+    cp.style.display = cp.style.display === 'block' ? 'none' : 'block';
+    $('#vp').style.cursor = cp.style.display === 'block' ? 'default' : 'none';
+  };
+  $('#hint').onclick = toggle;
+  setTimeout(() => { $('#hint').style.opacity = 0.25; }, 7000);
+
+  initScreenshotBar(toggle);
+
+  ch && (ch.onmessage = e => {
+    const d = e.data;
+    if (d.k === 'state') {
+      S = d.S;
+      onState();
+    } else if (d.k === 'ping') {
+      ch.postMessage({ k: 'pong' });
+    }
+  });
+
+  const fs = async () => {
+    try {
+      document.fullscreenElement ? await document.exitFullscreen() : await document.documentElement.requestFullscreen();
+      navigator.wakeLock && navigator.wakeLock.request('screen').catch(() => {});
+    } catch (e) {}
+  };
+
+  addEventListener('keydown', e => {
+    if (/INPUT|TEXTAREA/.test(e.target.tagName)) return;
+    const k = e.key.toLowerCase();
+    if (k === 'f') fs();
+    else if (k === 'c') toggle();
+    else if (k === ' ') {
+      e.preventDefault();
+      cmd(S.t.run ? 'pause' : 'start');
+    } else if (k === 'r') {
+      cmd('reset');
+    } else if (k === 'arrowleft') {
+      $('#btn-pv').click();
+    } else if (k === 'arrowright') {
+      $('#btn-nx').click();
+    } else if (k === 'arrowup') {
+      $('#btn-p5').click();
+    } else if (k === 'arrowdown') {
+      $('#btn-m5').click();
+    } else if (/^[1-8]$/.test(k)) {
+      const m = MODES[+k - 1];
+      m === 'announcement' && !S.ann.title
+        ? cmd('ann', { title: 'HELLO, BUILDERS', msg: 'Welcome to IdeaX 2026. Prepare for the build!' })
+        : cmd('mode', m);
+    }
+  });
+
+  ['wheel', 'touchmove', 'contextmenu'].forEach(ev => $('#stage').addEventListener(ev, e => e.preventDefault(), { passive: false }));
+  $('#robot').onclick = () => SC && SC.add(() => Robot.react());
+
+  tick();
+  goto(S.mode);
+} else {
+  $('#vp').style.display = 'none';
+  $('#hint').style.display = 'none';
+  $('#ctl-wrap').style.display = 'none';
+  document.body.style.overflow = 'auto';
+  const cp = document.createElement('div');
+  cp.className = 'cp full';
+  document.body.appendChild(cp);
+  mountControl(cp, true);
+}
+</script>
+</body>
+</html>
